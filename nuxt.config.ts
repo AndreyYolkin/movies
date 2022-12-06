@@ -1,3 +1,4 @@
+import module from './nuxt-undo-autoimports/src/module'
 const isDev = process.env.NODE_ENV === 'development'
 
 // const apiBaseUrl = 'http://localhost:3001'
@@ -10,6 +11,7 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
     '@nuxt/image-edge',
     '@nuxtjs/i18n',
+    [module, { cwdAlias: '@' }],
   ],
   experimental: {
     reactivityTransform: true,
