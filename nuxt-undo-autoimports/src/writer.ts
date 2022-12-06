@@ -15,6 +15,7 @@ outputFile.write(`/* eslint-disable eslint-comments/no-unlimited-disable */
 export async function saveTransformation(id, matchedImports, options) {
   if (!id.match(/[\\/]node_modules[\\/]/) && !id.match(/^virtual:/)) {
     const { search } = parseURL(decodeURIComponent(pathToFileURL(id).href))
+    const plainId = id.replace(/\?.*/, '')
     const query = parseQuery(search)
     const isVue = (
       id.endsWith('.vue')
@@ -25,7 +26,7 @@ export async function saveTransformation(id, matchedImports, options) {
     if (options.cwdAlias) {
       imports.replaceAll(process.cwd(), options.cwdAlias)
     }
-    outputFile.write(`// ${id.replace(/\?.*/, '')}
+    outputFile.write(`// ${plainId}
 ${imports.toString()}
 
 `)
@@ -37,7 +38,7 @@ ${imports.toString()}
       imports.append('\n*/')
     }
     imports.append('\n')
-    const sourceFile = readFileSync(id.replace(/\?.*/, ''), 'utf-8')
+    const sourceFile = readFileSync(plainId, 'utf-8')
     const code = new MagicString(sourceFile)
     if (isVue) {
       code.replace(/(<script[^><]*>)/gm, `$1
@@ -45,6 +46,6 @@ ${imports.toString()}`)
     } else {
       code.prepend(imports.toString())
     }
-    writeFileSync(id, code.toString())
+    writeFileSync(plainId, code.toString())
   }
 }
