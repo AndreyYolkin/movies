@@ -1,18 +1,10 @@
 import { pathToFileURL } from 'node:url'
-import { createWriteStream } from 'node:fs'
 import { createUnplugin } from 'unplugin'
 import { parseQuery, parseURL } from 'ufo'
 import type { Unimport } from 'unimport'
 import { normalize } from 'pathe'
 import type { UndoImportsOptions } from './schema'
-import { toImports } from 'unimport'
-
-const file = createWriteStream('unimport.js', { flags: 'w' })
-
-file.write(`/* eslint-disable eslint-comments/no-unlimited-disable */
-/* eslint-disable */
-
-`)
+import { saveTransformation } from './writer'
 
 export const TransformPlugin = createUnplugin(({ ctx, options, sourcemap }: { ctx: Unimport; options: Partial<UndoImportsOptions>; sourcemap?: boolean }) => {
   return {
@@ -52,12 +44,7 @@ export const TransformPlugin = createUnplugin(({ ctx, options, sourcemap }: { ct
       const { matchedImports } = await ctx.detectImports(code)
       const { s } = await ctx.injectImports(code, id, { autoImport: options.autoImport && !isNodeModule })
       if (s.hasChanged()) {
-        if (!id.match(/[\\/]node_modules[\\/]/) && !id.match(/^virtual:/)) {
-
-          file.write(`// ${id.replace(/\?.*/, '')}
-${toImports(matchedImports).replaceAll(process.cwd(), options.cwdAlias ?? process.cwd())}
-`)
-        }
+        saveTransformation(id, matchedImports, options)
         return {
           code: s.toString(),
           map: sourcemap

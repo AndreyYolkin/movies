@@ -1,6 +1,6 @@
 {
   "name": "nuxt-undo-autoimports",
-  "version": "3.0.0-beta.1",
+  "version": "3.0.0-beta.2",
   "description": "Nuxt module to undo autoimports, fork of Nuxt's internal `imports` module",
   "license": "MIT",
   "type": "module",

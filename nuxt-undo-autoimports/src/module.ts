@@ -1,4 +1,4 @@
-import { addPluginTemplate, addTemplate, addVitePlugin, addWebpackPlugin, defineNuxtModule, resolveAlias, updateTemplates, useNuxt } from '@nuxt/kit'
+import { addPluginTemplate, addTemplate, logger, addVitePlugin, addWebpackPlugin, defineNuxtModule, resolveAlias, updateTemplates, useNuxt } from '@nuxt/kit'
 import { isAbsolute, join, normalize, relative, resolve } from 'pathe'
 import type { Import, Unimport } from 'unimport'
 import { createUnimport, scanDirExports, toImports } from 'unimport'
@@ -23,12 +23,22 @@ export default defineNuxtModule<Partial<UndoImportsOptions>>({
       include: [],
       exclude: undefined,
     },
+    mode: 'log',
     cwdAlias: undefined,
   },
   async setup(_options, nuxt) {
     if (nuxt.options.dev) {
-      console.error('UndoImports module is not compatible with dev mode yet. Please run `nuxt build` instead.')
+      logger.error('UndoImports module is not compatible with dev mode yet. Please run `nuxt build` instead.')
       process.exit(1)
+    }
+    if (_options.mode === 'insert') {
+      logger.warn('Insertion mode: hope you committed your changes before running `nuxt build`!')
+    }
+    if (_options.mode === 'log') {
+      logger.info('Logging mode: you\'ll just get unimport.js file at your project root.')
+    }
+    if (_options.mode === 'comment') {
+      logger.info('Comment mode: imports will be included in your files, but commented out.')
     }
     const options = { ..._options }
     options.transform = options?.transform || { include: [] }
@@ -120,11 +130,13 @@ export default defineNuxtModule<Partial<UndoImportsOptions>>({
       references.push({ path: resolve(nuxt.options.buildDir, 'imports.d.ts') })
     })
 
-    nuxt.hook('build:done', () => {
-      // eslint-disable-next-line no-console
-      console.log(`Missing imports listed in ${process.cwd()}/unimport.js`)
+    const onCompiledCallback = () => {
+      logger.success(`Missing imports listed in ${process.cwd()}/unimport.js`)
       process.exit(0)
-    })
+    }
+
+    nuxt.hook('vite:compiled', onCompiledCallback)
+    nuxt.hook('webpack:compiled', onCompiledCallback)
 
     // Watch composables/ directory
     const templates = [
