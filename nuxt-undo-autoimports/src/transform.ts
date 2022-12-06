@@ -5,6 +5,7 @@ import { parseQuery, parseURL } from 'ufo'
 import type { Unimport } from 'unimport'
 import { normalize } from 'pathe'
 import type { UndoImportsOptions } from './schema'
+import { toImports } from 'unimport'
 
 const file = createWriteStream('unimport.js', { flags: 'w' })
 
@@ -42,21 +43,19 @@ export const TransformPlugin = createUnplugin(({ ctx, options, sourcemap }: { ct
         return true
     },
     async transform(code, id) {
-      console.warn('hello')
       id = normalize(id)
       const isNodeModule = id.match(/[\\/]node_modules[\\/]/) && !options.transform?.include?.some(pattern => id.match(pattern))
       // For modules in node_modules, we only transform `#imports` but not doing imports
       if (isNodeModule && !code.match(/(['"])#imports\1/))
         return
 
-      console.log('id', id)
-      const { isCJSContext, matchedImports } = await ctx.detectImports(code)
-      // console.log('matchedImports', matchedImports, id)
+      const { matchedImports } = await ctx.detectImports(code)
       const { s } = await ctx.injectImports(code, id, { autoImport: options.autoImport && !isNodeModule })
       if (s.hasChanged()) {
-        if (s.toString().length - s.original.length > 0 && !id.includes('node_modules') && !id.includes('virtual')) {
-          file.write(`// ${id}
-${s.toString().slice(0, s.toString().length - s.original.length).replaceAll(process.cwd(), options.cwdAlias ?? process.cwd())}
+        if (!id.match(/[\\/]node_modules[\\/]/) && !id.match(/^virtual:/)) {
+
+          file.write(`// ${id.replace(/\?.*/, '')}
+${toImports(matchedImports).replaceAll(process.cwd(), options.cwdAlias ?? process.cwd())}
 `)
         }
         return {
